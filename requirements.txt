@@ -1,0 +1,4 @@
+resend
+apscheduler
+supabase
+reportlab
