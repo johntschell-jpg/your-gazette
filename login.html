@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Gazette — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --ink:        #1a1714;
+      --paper:      #f7f4ee;
+      --cream:      #ede9df;
+      --rule:       #c8c0b0;
+      --accent:     #2b4a2f;
+      --accent-lt:  #e8efe8;
+      --muted:      #7a7063;
+      --danger:     #8b2a2a;
+      --col-width:  480px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .masthead {
+      border-bottom: 3px double var(--ink);
+      padding: 18px 24px 14px;
+      text-align: center;
+    }
+    .masthead-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .masthead-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .masthead-rule {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 10px auto 8px;
+      width: 80%;
+    }
+    .masthead-tagline {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 13px;
+      font-style: italic;
+      color: var(--muted);
+    }
+    .page {
+      max-width: var(--col-width);
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    .intro {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .intro h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.4rem, 4vw, 1.8rem);
+      font-weight: 400;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+    .intro p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .form-group { margin-bottom: 20px; }
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 16px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      border-radius: 0;
+      -webkit-appearance: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-lt);
+    }
+    input.error { border-color: var(--danger); }
+    .error-msg {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 5px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+    .global-error {
+      background: #f9eeee;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .global-error.visible { display: block; }
+    .form-divider { border: none; border-top: 1px solid var(--rule); margin: 32px 0; }
+    .submit-btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 16px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .submit-btn:hover  { background: #1e3621; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: var(--rule); cursor: not-allowed; }
+    .bottom-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .bottom-link a {
+      color: var(--accent);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    footer {
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      padding: 18px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @media (max-width: 480px) { .page { padding: 36px 16px 60px; } }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <p class="masthead-eyebrow">Welcome back</p>
+    <div class="masthead-title">Your Gazette</div>
+    <hr class="masthead-rule"/>
+    <p class="masthead-tagline">A weekly paper from the people you love most.</p>
+  </header>
+
+  <main class="page">
+
+    <div class="intro">
+      <h1>Sign in to your Gazette.</h1>
+      <p>Manage your columnists and access past issues.</p>
+    </div>
+
+    <div class="global-error" id="global-error"></div>
+
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
+      <span class="error-msg" id="email-error">Please enter a valid email address.</span>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Your password" autocomplete="current-password"/>
+      <span class="error-msg" id="password-error">Please enter your password.</span>
+    </div>
+
+    <hr class="form-divider"/>
+
+    <button class="submit-btn" id="submit-btn">Sign in →</button>
+
+    <p class="bottom-link">
+      Don't have an account? <a href="signup.html">Start your Gazette</a>
+    </p>
+
+  </main>
+
+  <footer>Your Gazette &nbsp;·&nbsp; A personal paper for people you love</footer>
+
+  <script>
+    const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // If already logged in, go straight to dashboard
+    async function checkSession() {
+      var result = await db.auth.getSession();
+      if (result.data.session) {
+        window.location.href = 'dashboard.html';
+      }
+    }
+    checkSession();
+
+    function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+    function showError(id, msg) {
+      var el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+    function clearError(id) { document.getElementById(id).classList.remove('visible'); }
+
+    function showGlobalError(msg) {
+      var el = document.getElementById('global-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', async function() {
+      clearError('email-error');
+      clearError('password-error');
+      document.getElementById('global-error').classList.remove('visible');
+
+      var email    = document.getElementById('email').value.trim();
+      var password = document.getElementById('password').value;
+
+      var valid = true;
+      if (!isValidEmail(email)) { showError('email-error', 'Please enter a valid email address.'); valid = false; }
+      if (!password)             { showError('password-error', 'Please enter your password.');      valid = false; }
+      if (!valid) return;
+
+      var btn = document.getElementById('submit-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Signing in…';
+
+      var result = await db.auth.signInWithPassword({ email: email, password: password });
+
+      if (result.error) {
+        showGlobalError('Incorrect email or password — please try again.');
+        btn.disabled    = false;
+        btn.textContent = 'Sign in →';
+        return;
+      }
+
+      window.location.href = 'dashboard.html';
+    });
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('submit-btn').click();
+    });
+  </script>
+
+</body>
+</html>
