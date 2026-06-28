@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Gazette — Write Your Column</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --ink:        #1a1714;
+      --paper:      #f7f4ee;
+      --cream:      #ede9df;
+      --rule:       #c8c0b0;
+      --accent:     #2b4a2f;
+      --accent-lt:  #e8efe8;
+      --muted:      #7a7063;
+      --danger:     #8b2a2a;
+      --col-width:  640px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .masthead {
+      border-bottom: 3px double var(--ink);
+      padding: 18px 24px 14px;
+      text-align: center;
+    }
+    .masthead-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .masthead-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .masthead-rule {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 10px auto 8px;
+      width: 80%;
+    }
+    .masthead-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .page {
+      max-width: var(--col-width);
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    .deadline-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--accent-lt);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      margin-bottom: 36px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    .deadline-banner .clock-icon { font-size: 18px; flex-shrink: 0; }
+    .greeting { margin-bottom: 28px; }
+    .greeting h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .greeting p { font-size: 15px; color: var(--muted); max-width: 520px; }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .section-rule { flex: 1; border: none; border-top: 1px solid var(--rule); }
+    .form-group { margin-bottom: 24px; }
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 16px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      border-radius: 0;
+      -webkit-appearance: none;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-lt);
+    }
+    textarea { min-height: 260px; resize: vertical; line-height: 1.7; }
+    .word-count-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+    .word-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+    .word-count.over { color: var(--danger); }
+    .form-divider { border: none; border-top: 1px solid var(--rule); margin: 32px 0; }
+    .submit-btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 16px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .submit-btn:hover  { background: #1e3621; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: var(--rule); cursor: not-allowed; }
+    .fine-print { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
+    .state { display: none; }
+    .state.visible { display: block; }
+    .success-screen { text-align: center; padding: 60px 0; }
+    .success-icon { font-size: 48px; margin-bottom: 20px; }
+    .success-screen h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .success-screen p { font-size: 15px; color: var(--muted); max-width: 400px; margin: 0 auto; }
+    .error-screen { text-align: center; padding: 60px 0; }
+    .error-screen h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-style: italic;
+      margin-bottom: 12px;
+      color: var(--danger);
+    }
+    .error-screen p { font-size: 15px; color: var(--muted); max-width: 400px; margin: 0 auto; }
+    .loading-screen { text-align: center; padding: 60px 0; }
+    .loading-screen p {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    footer {
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      padding: 18px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @media (max-width: 480px) { .page { padding: 28px 16px 60px; } }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <p class="masthead-eyebrow">Your column is due</p>
+    <div class="masthead-title">Your Gazette</div>
+    <hr class="masthead-rule"/>
+    <p class="masthead-date" id="issue-date"></p>
+  </header>
+
+  <main class="page">
+
+    <div class="state visible loading-screen" id="state-loading">
+      <p>Loading your column…</p>
+    </div>
+
+    <div class="state error-screen" id="state-error">
+      <h2>This link isn't valid.</h2>
+      <p>It may have expired or been mistyped. Check your invitation email and try again.</p>
+    </div>
+
+    <div class="state success-screen" id="state-already-submitted">
+      <div class="success-icon">✅</div>
+      <h2>Already received.</h2>
+      <p>Your column for this week has already been submitted — it will appear in all your Gazettes. See you next Friday!</p>
+    </div>
+
+    <div class="state" id="state-form">
+      <div class="deadline-banner">
+        <span class="clock-icon">⏰</span>
+        <span>Columns close <strong>Sunday at 5 am ET</strong> — the paper goes out Sunday morning.</span>
+      </div>
+
+      <div class="greeting">
+        <h1>Time to write your column.</h1>
+        <p>Share whatever's on your mind — a moment from your week, something you learned, something you're looking forward to. Keep it short and real.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="columnist-name">Your name</label>
+        <input type="text" id="columnist-name" placeholder="e.g. Grandma Ruth" autocomplete="name"/>
+      </div>
+
+      <div class="form-group">
+        <div class="section-head">
+          <span class="section-label">Your column</span>
+          <hr class="section-rule"/>
+        </div>
+        <textarea id="column-body" placeholder="Write whatever feels right — a paragraph or two is plenty. No need to be polished."></textarea>
+        <div class="word-count-row">
+          <span class="word-count" id="word-count">0 / 300 words</span>
+        </div>
+      </div>
+
+      <hr class="form-divider"/>
+      <button class="submit-btn" id="submit-btn">Submit my column →</button>
+      <p class="fine-print">Your column will appear in all Gazettes you write for this Sunday.</p>
+    </div>
+
+    <div class="state success-screen" id="state-success">
+      <div class="success-icon">🗞️</div>
+      <h2>Column received.</h2>
+      <p>Thank you — your words are headed to the press. Look for this Sunday's Gazette in your inbox.</p>
+    </div>
+
+  </main>
+
+  <footer>Your Gazette &nbsp;·&nbsp; A personal paper for people you love</footer>
+
+  <script>
+    const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    var columnistId  = null;
+    var columnistEmail = null;
+    var issueDate    = null;
+
+    function showState(id) {
+      document.querySelectorAll('.state').forEach(function(s) { s.classList.remove('visible'); });
+      document.getElementById(id).classList.add('visible');
+    }
+
+    function getIssueDateString() {
+      var now       = new Date();
+      var sunday    = new Date(now);
+      var daysAhead = (7 - now.getDay()) % 7 || 7;
+      sunday.setDate(now.getDate() + daysAhead);
+      return sunday.toISOString().slice(0, 10);
+    }
+
+    function formatIssueDate(str) {
+      var d = new Date(str + 'T12:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    async function init() {
+      var params = new URLSearchParams(window.location.search);
+      columnistId = params.get('c');
+      issueDate   = getIssueDateString();
+
+      document.getElementById('issue-date').textContent = 'Issue of ' + formatIssueDate(issueDate);
+
+      if (!columnistId) {
+        showState('state-error');
+        return;
+      }
+
+      // Look up the columnist's email from their ID
+      var colResult = await db
+        .from('columnists')
+        .select('email')
+        .eq('id', columnistId)
+        .maybeSingle();
+
+      if (colResult.error || !colResult.data) {
+        showState('state-error');
+        return;
+      }
+
+      columnistEmail = colResult.data.email;
+
+      // Check if already submitted this week by email (covers all Gazettes)
+      var checkResult = await db
+        .from('submissions')
+        .select('id')
+        .eq('email', columnistEmail)
+        .eq('issue_date', issueDate)
+        .maybeSingle();
+
+      if (checkResult.data) {
+        showState('state-already-submitted');
+        return;
+      }
+
+      showState('state-form');
+    }
+
+    // Word count
+    var textarea  = document.getElementById('column-body');
+    var counter   = document.getElementById('word-count');
+    var MAX_WORDS = 300;
+
+    textarea.addEventListener('input', function() {
+      var words = textarea.value.trim() === '' ? 0 : textarea.value.trim().split(/\s+/).length;
+      counter.textContent = words + ' / ' + MAX_WORDS + ' words';
+      counter.classList.toggle('over', words > MAX_WORDS);
+    });
+
+    // Submit
+    document.getElementById('submit-btn').addEventListener('click', async function() {
+      var name  = document.getElementById('columnist-name').value.trim();
+      var body  = textarea.value.trim();
+      var words = body === '' ? 0 : body.split(/\s+/).length;
+
+      if (!name) {
+        alert('Please add your name so the paper knows who wrote this column.');
+        document.getElementById('columnist-name').focus();
+        return;
+      }
+      if (!body) {
+        alert('Your column is empty — write a line or two before submitting.');
+        textarea.focus();
+        return;
+      }
+      if (words > MAX_WORDS) {
+        alert('Your column is ' + words + ' words — please trim it to ' + MAX_WORDS + ' or fewer.');
+        textarea.focus();
+        return;
+      }
+
+      var btn = document.getElementById('submit-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Submitting…';
+
+      // Save submission keyed by email and issue_date
+      // This single submission will appear in every Gazette this columnist writes for
+      var result = await db.from('submissions').insert({
+        email:       columnistEmail,
+        issue_date:  issueDate,
+        author_name: name,
+        body:        body,
+      });
+
+      if (result.error) {
+        alert('Something went wrong — please try again.');
+        btn.disabled    = false;
+        btn.textContent = 'Submit my column →';
+        return;
+      }
+
+      showState('state-success');
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

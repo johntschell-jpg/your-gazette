@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Gazette — Start Your Paper</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --ink:        #1a1714;
+      --paper:      #f7f4ee;
+      --cream:      #ede9df;
+      --rule:       #c8c0b0;
+      --accent:     #2b4a2f;
+      --accent-lt:  #e8efe8;
+      --muted:      #7a7063;
+      --danger:     #8b2a2a;
+      --col-width:  640px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    .masthead {
+      border-bottom: 3px double var(--ink);
+      padding: 18px 24px 14px;
+      text-align: center;
+    }
+    .masthead-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .masthead-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .masthead-rule {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 10px auto 8px;
+      width: 80%;
+    }
+    .masthead-tagline {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 13px;
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .page {
+      max-width: var(--col-width);
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .intro {
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .intro h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+    .intro p {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 500px;
+    }
+
+    .step-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .step-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .step-rule {
+      flex: 1;
+      border: none;
+      border-top: 1px solid var(--rule);
+    }
+
+    .form-section { margin-bottom: 40px; }
+    .form-group   { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .field-hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 5px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 16px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      border-radius: 0;
+      -webkit-appearance: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-lt);
+    }
+    input.error { border-color: var(--danger); }
+
+    .error-msg {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 5px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    .gazette-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--cream);
+      border: 1px solid var(--rule);
+      padding: 12px 16px;
+      margin-top: 10px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .gazette-preview.visible { opacity: 1; }
+    .preview-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .preview-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-style: italic;
+    }
+
+    .columnist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .columnist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .columnist-row input { flex: 1; }
+    .remove-btn {
+      background: none;
+      border: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 16px;
+      width: 38px;
+      height: 44px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    .add-columnist-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: 1px dashed var(--rule);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .add-columnist-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .columnist-note {
+      font-size: 12px;
+      font-style: italic;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .form-divider {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 36px 0;
+    }
+
+    .global-error {
+      background: #f9eeee;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .global-error.visible { display: block; }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 16px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .submit-btn:hover  { background: #1e3621; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: var(--rule); cursor: not-allowed; }
+
+    .fine-print {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 0;
+    }
+    .success-screen.visible { display: block; }
+    .success-icon { font-size: 48px; margin-bottom: 20px; }
+    .success-screen h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .success-screen .gazette-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .success-screen p {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      padding: 18px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 28px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <p class="masthead-eyebrow">Start your paper</p>
+    <div class="masthead-title">Your Gazette</div>
+    <hr class="masthead-rule"/>
+    <p class="masthead-tagline">A weekly paper from the people you love most.</p>
+  </header>
+
+  <main class="page">
+
+    <div class="intro">
+      <h1>Your own paper, every Sunday.</h1>
+      <p>Invite friends and family to write a short column each week. Every Sunday morning, their updates arrive in your inbox as a beautifully formatted newspaper — just for you.</p>
+    </div>
+
+    <div id="form-section">
+
+      <div class="global-error" id="global-error"></div>
+
+      <!-- Step 1 -->
+      <div class="form-section">
+        <div class="step-head">
+          <span class="step-label">Step 1 — About you</span>
+          <hr class="step-rule"/>
+        </div>
+
+        <div class="form-group">
+          <label for="subscriber-name">Your name</label>
+          <input type="text" id="subscriber-name" placeholder="e.g. Margaret" autocomplete="given-name"/>
+          <div class="gazette-preview" id="gazette-preview">
+            <span class="preview-label">Your paper will be called</span>
+            <span class="preview-name" id="preview-name"></span>
+          </div>
+          <span class="error-msg" id="name-error">Please enter your name.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="subscriber-email">Your email address</label>
+          <input type="email" id="subscriber-email" placeholder="you@example.com" autocomplete="email"/>
+          <p class="field-hint">Your Gazette will be delivered here every Sunday morning.</p>
+          <span class="error-msg" id="email-error">Please enter a valid email address.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="subscriber-password">Choose a password</label>
+          <input type="password" id="subscriber-password" placeholder="At least 8 characters" autocomplete="new-password"/>
+          <span class="error-msg" id="password-error">Password must be at least 8 characters.</span>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="form-section">
+        <div class="step-head">
+          <span class="step-label">Step 2 — Your columnists</span>
+          <hr class="step-rule"/>
+        </div>
+
+        <div class="form-group">
+          <label>Who do you want to hear from each week?</label>
+          <div class="columnist-list" id="columnist-list"></div>
+          <button class="add-columnist-btn" id="add-btn">+ Add another columnist</button>
+          <p class="columnist-note">Each person will receive a Friday evening email inviting them to write their column. They don't need an account.</p>
+        </div>
+      </div>
+
+      <hr class="form-divider"/>
+
+      <button class="submit-btn" id="submit-btn">Start my Gazette →</button>
+      <p class="fine-print">Your columnists will be invited this Friday. Your first paper arrives Sunday morning.</p>
+
+    </div>
+
+    <!-- Success -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">🗞️</div>
+      <h2>Your Gazette is ready.</h2>
+      <p class="gazette-title" id="success-title"></p>
+      <p>Your columnists will receive their invitation this Friday evening. Watch for your first edition Sunday morning.</p>
+    </div>
+
+  </main>
+
+  <footer>Your Gazette &nbsp;·&nbsp; A personal paper for people you love</footer>
+
+  <script>
+    // ── Supabase setup ──
+    // Replace these two values with your own from Project Settings → API
+    const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbWhoaW1iaXdwcHN1bm9ha3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDA1NTEsImV4cCI6MjA5ODA3NjU1MX0.qeuypduUy_iNRnqf7JRnWB-qaD3QTQWa9OY1xPidwJ0';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ── Columnist rows ──
+    let rowCount = 0;
+
+    function addColumnistRow(prefill) {
+      prefill = prefill || '';
+      rowCount = rowCount + 1;
+      var list = document.getElementById('columnist-list');
+      var row  = document.createElement('div');
+      row.className = 'columnist-row';
+      row.id = 'row-' + rowCount;
+      row.innerHTML =
+        '<input type="email" placeholder="friend@example.com" value="' + prefill + '" autocomplete="off"/>' +
+        '<button class="remove-btn" data-row="row-' + rowCount + '">×</button>';
+      list.appendChild(row);
+
+      // attach remove listener
+      row.querySelector('.remove-btn').addEventListener('click', function() {
+        var id = this.getAttribute('data-row');
+        if (document.querySelectorAll('.columnist-row').length <= 1) return;
+        var el = document.getElementById(id);
+        if (el) el.remove();
+      });
+    }
+
+    // Start with 3 empty rows
+    addColumnistRow();
+    addColumnistRow();
+    addColumnistRow();
+
+    // Add button listener
+    document.getElementById('add-btn').addEventListener('click', function() {
+      addColumnistRow();
+    });
+
+    // ── Name preview ──
+    document.getElementById('subscriber-name').addEventListener('input', function() {
+      var name    = this.value.trim();
+      var preview = document.getElementById('gazette-preview');
+      document.getElementById('preview-name').textContent = name ? name + "'s Gazette" : '';
+      if (name) {
+        preview.classList.add('visible');
+      } else {
+        preview.classList.remove('visible');
+      }
+    });
+
+    // ── Helpers ──
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    function showFieldError(id, msg) {
+      var el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearFieldError(id) {
+      document.getElementById(id).classList.remove('visible');
+    }
+
+    function showGlobalError(msg) {
+      var el = document.getElementById('global-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Submit ──
+    document.getElementById('submit-btn').addEventListener('click', async function() {
+
+      // Clear previous errors
+      clearFieldError('name-error');
+      clearFieldError('email-error');
+      clearFieldError('password-error');
+      document.getElementById('global-error').classList.remove('visible');
+
+      var name     = document.getElementById('subscriber-name').value.trim();
+      var email    = document.getElementById('subscriber-email').value.trim();
+      var password = document.getElementById('subscriber-password').value;
+
+      var valid = true;
+      if (!name)               { showFieldError('name-error',     'Please enter your name.');                  valid = false; }
+      if (!isValidEmail(email)){ showFieldError('email-error',    'Please enter a valid email address.');      valid = false; }
+      if (password.length < 8) { showFieldError('password-error', 'Password must be at least 8 characters.'); valid = false; }
+
+      // Collect columnist emails
+      var emailInputs = document.querySelectorAll('.columnist-row input[type="email"]');
+      var columnists  = [];
+      var badColumnist = false;
+      emailInputs.forEach(function(input) {
+        var v = input.value.trim();
+        if (!v) return;
+        if (!isValidEmail(v)) {
+          input.classList.add('error');
+          badColumnist = true;
+        } else {
+          input.classList.remove('error');
+          columnists.push(v);
+        }
+      });
+      if (badColumnist)          valid = false;
+      if (columnists.length < 1) {
+        valid = false;
+        emailInputs.forEach(function(i) { if (!i.value.trim()) i.classList.add('error'); });
+      }
+
+      if (!valid) return;
+
+      var btn = document.getElementById('submit-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Setting up your Gazette…';
+
+      try {
+        // 1. Create auth account
+        var authResult = await db.auth.signUp({ email: email, password: password });
+        if (authResult.error) throw new Error(authResult.error.message);
+        var userId = authResult.data.user.id;
+
+        // 2. Create subscriber row
+        var subResult = await db
+          .from('subscribers')
+          .insert({ user_id: userId, name: name, email: email })
+          .select()
+          .single();
+        if (subResult.error) throw new Error(subResult.error.message);
+        var subscriberId = subResult.data.id;
+
+        // 3. Insert columnists
+        var columnistRows = columnists.map(function(e) {
+          return { subscriber_id: subscriberId, email: e };
+        });
+        var colResult = await db.from('columnists').insert(columnistRows);
+        if (colResult.error) throw new Error(colResult.error.message);
+
+        // 4. Show success
+        document.getElementById('form-section').style.display = 'none';
+        document.getElementById('success-title').textContent  = name + "'s Gazette";
+        document.getElementById('success-screen').classList.add('visible');
+
+      } catch(err) {
+        showGlobalError('Something went wrong: ' + err.message);
+        btn.disabled    = false;
+        btn.textContent = 'Start my Gazette →';
+      }
+    });
+  </script>
+
+</body>
+</html>
