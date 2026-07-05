@@ -33,10 +33,10 @@ from supabase import create_client
 # ─────────────────────────────────────────────
 #  CONFIG
 # ─────────────────────────────────────────────
-RESEND_API_KEY  = os.environ.get("RESEND_API_KEY",   "re_2paBLSAt_HVUZfDEWfKSmnM4jQdeGEzst")
+RESEND_API_KEY  = os.environ.get("RESEND_API_KEY",   "re_RJtcXtvm_8fNptZpwYmmSgi5CNLpvaq65")
 SUPABASE_URL    = os.environ.get("SUPABASE_URL",     "https://ccmhhimbiwppsunoakwd.supabase.co")
 SUPABASE_KEY    = os.environ.get("SUPABASE_ANON_KEY","sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT")
-SITE_URL        = os.environ.get("SITE_URL",         "https://gregarious-taiyaki-017159.netlify.app")
+SITE_URL        = os.environ.get("SITE_URL",         "https://yourgazette.net")
 FROM_ADDRESS    = "Your Gazette <hello@contact.yourgazette.net>"
 
 resend.api_key  = RESEND_API_KEY
@@ -47,12 +47,9 @@ db              = create_client(SUPABASE_URL, SUPABASE_KEY)
 #  HELPERS
 # ─────────────────────────────────────────────
 def get_issue_date():
-    """Returns this Sunday's date."""
-    today      = datetime.date.today()
-    # If today is Sunday (weekday 6), use today
+    today = datetime.date.today()
     if today.weekday() == 6:
         return today
-    # Otherwise return the coming Sunday
     days_ahead = (6 - today.weekday()) % 7
     return today + datetime.timedelta(days=days_ahead)
 
@@ -62,22 +59,108 @@ def make_submission_link(subscriber_id, columnist_id):
 
 
 # ─────────────────────────────────────────────
+#  SEND ACCEPTANCE INVITATION
+#  Called when a new columnist is added
+# ─────────────────────────────────────────────
+def send_acceptance_invitation(subscriber_id, columnist_id, columnist_email):
+    """Send a one-time acceptance invitation to a new columnist."""
+    accept_url = f"{SITE_URL}/accept.html?s={subscriber_id}&c={columnist_id}"
+
+    # Get subscriber name
+    result = db.table("subscribers").select("name").eq("id", subscriber_id).single().execute()
+    if not result.data:
+        print(f"  ✗ Could not find subscriber {subscriber_id}")
+        return False
+
+    subscriber_name = result.data["name"]
+
+    text_body = f"""Hi,
+
+{subscriber_name} has invited you to write a weekly column for their personal newspaper on Your Gazette.
+
+Your Gazette is a weekly newspaper written entirely by friends and family — delivered every Sunday morning. It only takes a few minutes to write your column each week.
+
+Accept or decline your invitation here:
+{accept_url}
+
+— Your Gazette
+"""
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  body {{ background:#f7f4ee; font-family:Georgia,'Times New Roman',serif; color:#1a1714; margin:0; padding:0; }}
+  .wrap {{ max-width:520px; margin:40px auto; padding:0 24px 48px; }}
+  .masthead {{ text-align:center; border-bottom:3px double #1a1714; padding-bottom:14px; margin-bottom:32px; }}
+  .masthead-eyebrow {{ font-family:'Courier New',monospace; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#7a7063; margin-bottom:6px; }}
+  .masthead-title {{ font-size:30px; font-weight:bold; margin:0; }}
+  .body-text {{ font-size:16px; line-height:1.7; margin-bottom:24px; }}
+  .what {{ background:#ede9df; border:1px solid #c8c0b0; padding:16px 20px; margin-bottom:28px; }}
+  .what-label {{ font-family:'Courier New',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#7a7063; margin-bottom:10px; }}
+  .what ul {{ margin:0; padding-left:20px; }}
+  .what li {{ font-size:14px; line-height:1.6; margin-bottom:4px; }}
+  .cta-btn {{ display:block; background:#2b4a2f; color:#ffffff !important; text-decoration:none; text-align:center; font-family:'Courier New',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; padding:16px 24px; margin-bottom:12px; }}
+  .footer {{ font-family:'Courier New',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7a7063; text-align:center; border-top:1px solid #c8c0b0; padding-top:16px; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <p class="masthead-eyebrow">You've been invited</p>
+    <p class="masthead-title">Your Gazette</p>
+  </div>
+  <p class="body-text">
+    <strong>{subscriber_name}</strong> has invited you to write a weekly column for their personal newspaper on Your Gazette.
+  </p>
+  <div class="what">
+    <p class="what-label">What this means</p>
+    <ul>
+      <li>You'll receive an email each Friday to write a short column</li>
+      <li>Your column appears in their personal Sunday newspaper</li>
+      <li>Takes just a few minutes — write as much or as little as you like</li>
+      <li>You can skip any week, no pressure</li>
+    </ul>
+  </div>
+  <a class="cta-btn" href="{accept_url}">Accept invitation &rarr;</a>
+  <p class="footer">Your Gazette &nbsp;&middot;&nbsp; A personal paper for people you love</p>
+</div>
+</body>
+</html>"""
+
+    try:
+        resend.Emails.send({
+            "from":    FROM_ADDRESS,
+            "to":      columnist_email,
+            "subject": f"{subscriber_name} invited you to write for their Gazette",
+            "text":    text_body,
+            "html":    html_body,
+        })
+        print(f"  ✓ Acceptance invitation sent to {columnist_email}")
+        return True
+    except Exception as e:
+        print(f"  ✗ Failed to send invitation to {columnist_email}: {e}")
+        return False
+
+
+# ─────────────────────────────────────────────
 #  JOB 1 — Friday 6 pm: Invite columnists
 # ─────────────────────────────────────────────
 def send_friday_invitations():
     print(f"\n[{datetime.datetime.now()}] Running Friday invitation job...")
 
     # Load all columnists across all subscribers
-    col_result = db.table("columnists").select("id, email, subscriber_id").execute()
+    col_result = db.table("columnists").select("id, email, subscriber_id, status").execute()
     if not col_result.data:
         print("  No columnists found.")
         return
 
+    # Only invite accepted columnists
     # Deduplicate by email — each columnist only gets one invitation
-    # Use their first columnist_id for the submission link
     seen_emails = {}
     for c in col_result.data:
-        if c["email"] not in seen_emails:
+        if c.get("status") == "accepted" and c["email"] not in seen_emails:
             seen_emails[c["email"]] = c
 
     sent   = 0
@@ -121,12 +204,12 @@ Deadline: Sunday at 5 am ET.
     <p class="masthead-title">Your Gazette</p>
   </div>
   <p class="body-text">
-    <strong>Your Gazette</strong> goes out this Sunday morning.
+    <strong>{subscriber['name']}'s Gazette</strong> goes out this Sunday morning.
     Write your column — it only takes a few minutes.
   </p>
   <p class="deadline">&#9200; Deadline: Sunday at 5 am ET</p>
   <a class="cta-btn" href="{submit_url}">Write my column &rarr;</a>
-  <p class="footer">Your Gazette</p>
+  <p class="footer">Your Gazette &nbsp;&middot;&nbsp; {subscriber['name']}'s Edition</p>
 </div>
 </body>
 </html>"""
@@ -176,25 +259,26 @@ def send_sunday_gazette():
             col_result = db.table("columnists") \
                 .select("id, email") \
                 .eq("subscriber_id", subscriber["id"]) \
+                .eq("status", "accepted") \
                 .execute()
 
             columnists = col_result.data or []
 
-            # 2. Load submissions for this week by email
+            # 2. Load submissions for this week by columnist_id
             #    One submission covers all Gazettes the columnist writes for
-            columnist_emails = [c["email"] for c in columnists]
+            columnist_ids = [c["id"] for c in columnists]
             sub_result = db.table("submissions") \
-                .select("email, author_name, body") \
-                .in_("email", columnist_emails) \
+                .select("columnist_id, author_name, body") \
+                .in_("columnist_id", columnist_ids) \
                 .eq("issue_date", issue_date.isoformat()) \
-                .execute()  
+                .execute()
 
-            submissions = { s["email"]: s for s in (sub_result.data or []) }
+            submissions = { s["columnist_id"]: s for s in (sub_result.data or []) }
 
             # 3. Build columns list for PDF generator
             columns = []
             for c in columnists:
-                sub = submissions.get(c["email"])
+                sub = submissions.get(c["id"])
                 if sub:
                     columns.append({
                         "author":    sub["author_name"],
@@ -296,6 +380,54 @@ def send_sunday_gazette():
 
 
 # ─────────────────────────────────────────────
+#  API SERVER
+#  Simple HTTP server so the dashboard can
+#  trigger invitation emails immediately
+# ─────────────────────────────────────────────
+def run_api_server():
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import json
+    import urllib.parse
+    import threading
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            if self.path == '/invite':
+                length = int(self.headers.get('Content-Length', 0))
+                body   = json.loads(self.rfile.read(length))
+                ok = send_acceptance_invitation(
+                    body["subscriber_id"],
+                    body["columnist_id"],
+                    body["email"]
+                )
+                self.send_response(200 if ok else 500)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": ok}).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def do_OPTIONS(self):
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
+
+        def log_message(self, format, *args):
+            pass  # suppress logs
+
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.daemon = True
+    thread.start()
+    print(f"  API server running on port {port}")
+
+
+# ─────────────────────────────────────────────
 #  SCHEDULER
 # ─────────────────────────────────────────────
 def run_scheduler():
@@ -317,6 +449,7 @@ def run_scheduler():
         replace_existing=True,
     )
 
+    run_api_server()
     print("=" * 50)
     print("  Your Gazette Scheduler Running")
     print("  Friday 6:00 pm ET — columnist invitations")

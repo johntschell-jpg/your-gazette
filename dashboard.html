@@ -416,9 +416,10 @@
   <script>
     // ── Supabase setup ──
     const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbWhoaW1iaXdwcHN1bm9ha3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDA1NTEsImV4cCI6MjA5ODA3NjU1MX0.qeuypduUy_iNRnqf7JRnWB-qaD3QTQWa9OY1xPidwJ0';
+    const SUPABASE_ANON = 'sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    var SCHEDULER_URL = 'your-gazette-production.up.railway.app';
     var subscriber   = null;
     var columnistData = [];
 

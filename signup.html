@@ -408,7 +408,7 @@
     // ── Supabase setup ──
     // Replace these two values with your own from Project Settings → API
     const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbWhoaW1iaXdwcHN1bm9ha3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDA1NTEsImV4cCI6MjA5ODA3NjU1MX0.qeuypduUy_iNRnqf7JRnWB-qaD3QTQWa9OY1xPidwJ0';
+    const SUPABASE_ANON = 'sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     // ── Columnist rows ──
@@ -543,10 +543,29 @@
         var columnistRows = columnists.map(function(e) {
           return { subscriber_id: subscriberId, email: e };
         });
-        var colResult = await db.from('columnists').insert(columnistRows);
+        var colResult = await db.from('columnists').insert(columnistRows).select();
         if (colResult.error) throw new Error(colResult.error.message);
 
-        // 4. Show success
+        // 4. Send acceptance invitations
+        var SCHEDULER_URL = 'your-gazette-production.up.railway.app';
+        for (var i = 0; i < colResult.data.length; i++) {
+          var c = colResult.data[i];
+          try {
+            await fetch(SCHEDULER_URL + '/invite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subscriber_id: subscriberId,
+                columnist_id:  c.id,
+                email:         c.email,
+              })
+            });
+          } catch(e) {
+            console.warn('Could not send invitation to ' + c.email, e);
+          }
+        }
+
+        // 5. Show success
         document.getElementById('form-section').style.display = 'none';
         document.getElementById('success-title').textContent  = name + "'s Gazette";
         document.getElementById('success-screen').classList.add('visible');

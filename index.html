@@ -1,11 +1,318 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta http-equiv="refresh" content="0; url=signup.html"/>
-  <title>Your Gazette</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Gazette — A weekly paper from the people you love most</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --ink:       #1a1714;
+      --paper:     #f7f4ee;
+      --cream:     #ede9df;
+      --rule:      #c8c0b0;
+      --accent:    #2b4a2f;
+      --muted:     #7a7063;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .topbar-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .topbar-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .topbar-links a {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .topbar-links a:hover { color: var(--ink); }
+    .topbar-subscribe {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: #fff !important;
+      padding: 9px 18px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .topbar-subscribe:hover { background: #1e3621 !important; }
+
+    /* ── Hero ── */
+    .hero {
+      border-bottom: 3px double var(--ink);
+      padding: 56px 32px 48px;
+      text-align: center;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .hero-rule-top {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 0 auto 20px;
+      width: 100%;
+    }
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.8rem, 8vw, 5.2rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .hero-title em {
+      font-style: italic;
+      font-weight: 400;
+    }
+    .hero-rule-bottom {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 20px auto;
+      width: 100%;
+    }
+    .hero-deck {
+      font-family: 'Source Serif 4', serif;
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      font-style: italic;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.5;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 18px 40px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .hero-cta:hover  { background: #1e3621; }
+    .hero-cta:active { transform: scale(0.99); }
+    .hero-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    /* ── Images section ── */
+    .images-section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 64px 32px 80px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .section-rule { flex: 1; border: none; border-top: 1px solid var(--rule); }
+
+    .image-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .image-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .image-block img {
+      width: 100%;
+      max-width: 600px;
+      display: block;
+      border: 1px solid var(--rule);
+      box-shadow: 4px 4px 0 var(--cream), 4px 4px 0 1px var(--rule);
+    }
+
+    .image-caption {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    /* ── Bottom CTA ── */
+    .bottom-cta {
+      border-top: 3px double var(--ink);
+      text-align: center;
+      padding: 64px 32px 80px;
+      background: var(--cream);
+    }
+    .bottom-cta h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 400;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .bottom-cta p {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 440px;
+      margin: 0 auto 32px;
+    }
+    .bottom-cta a {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 18px 40px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .bottom-cta a:hover { background: #1e3621; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      padding: 20px 32px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    footer a {
+      color: var(--muted);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .topbar { padding: 12px 16px; }
+      .hero { padding: 40px 16px 36px; }
+      .images-section { padding: 40px 16px 60px; }
+      .topbar-links a:not(.topbar-subscribe) { display: none; }
+      footer { justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-  <script>window.location.href = 'signup.html';</script>
+
+  <!-- Top bar -->
+  <nav class="topbar">
+    <div class="topbar-logo">Your Gazette</div>
+    <div class="topbar-links">
+      <a href="login.html">Sign in</a>
+      <a href="signup.html" class="topbar-subscribe">Start My Gazette</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="hero-eyebrow">Delivered every Sunday morning</p>
+    <hr class="hero-rule-top"/>
+    <h1 class="hero-title">Your <em>Gazette</em></h1>
+    <hr class="hero-rule-bottom"/>
+    <p class="hero-deck">A weekly newspaper written entirely by your friends and family — delivered to your inbox every Sunday morning.</p>
+    <a href="signup.html" class="hero-cta">Start My Gazette →</a>
+    <p class="hero-meta">Free &nbsp;·&nbsp; No app required</p>
+  </section>
+
+  <!-- Images -->
+  <section class="images-section">
+    <div class="image-stack">
+
+      <div class="image-block">
+        <img src="unnamed.png" alt="Your Gazette sample newspaper front page"/>
+        <p class="image-caption">Your Gazette — Vol. 1, June 2026</p>
+      </div>
+
+      <div class="image-block">
+        <img src="Your_Gazette_How_To__1_.jpg" alt="How does Your Gazette work?"/>
+        <p class="image-caption">How it works — sign up, invite your people, enjoy every Sunday</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Bottom CTA -->
+  <div class="bottom-cta">
+    <h2>Ready to start your paper?</h2>
+    <p>Sign up in two minutes. Your first edition arrives this Sunday.</p>
+    <a href="signup.html">Start my Gazette →</a>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span>Your Gazette &nbsp;·&nbsp; yourgazette.net</span>
+    <span>
+      <a href="login.html">Sign in</a>
+      &nbsp;&nbsp;·&nbsp;&nbsp;
+      <a href="signup.html">Subscribe</a>
+    </span>
+  </footer>
+
 </body>
 </html>

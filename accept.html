@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Gazette — Accept Invitation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --ink:        #1a1714;
+      --paper:      #f7f4ee;
+      --cream:      #ede9df;
+      --rule:       #c8c0b0;
+      --accent:     #2b4a2f;
+      --accent-lt:  #e8efe8;
+      --muted:      #7a7063;
+      --danger:     #8b2a2a;
+      --col-width:  520px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .masthead {
+      border-bottom: 3px double var(--ink);
+      padding: 18px 24px 14px;
+      text-align: center;
+    }
+    .masthead-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .masthead-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .masthead-rule {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 10px auto 8px;
+      width: 80%;
+    }
+    .masthead-tagline {
+      font-family: 'Source Serif 4', serif;
+      font-size: 13px;
+      font-style: italic;
+      color: var(--muted);
+    }
+    .page {
+      max-width: var(--col-width);
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+      text-align: center;
+    }
+    .state { display: none; }
+    .state.visible { display: block; }
+
+    /* Loading */
+    .loading p {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Invite card */
+    .invite-card {
+      background: var(--cream);
+      border: 1px solid var(--rule);
+      padding: 36px 32px;
+      margin-bottom: 32px;
+    }
+    .invite-icon { font-size: 48px; margin-bottom: 20px; }
+    .invite-card h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+    .invite-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .invite-what {
+      background: #fff;
+      border: 1px solid var(--rule);
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .invite-what-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .invite-what ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .invite-what li {
+      font-size: 14px;
+      color: var(--ink);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .invite-what li::before {
+      content: '→';
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .accept-btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 18px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+    .accept-btn:hover  { background: #1e3621; }
+    .accept-btn:active { transform: scale(0.99); }
+    .accept-btn:disabled { background: var(--rule); cursor: not-allowed; }
+    .decline-btn {
+      display: block;
+      width: 100%;
+      background: none;
+      color: var(--muted);
+      border: 1px solid var(--rule);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .decline-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    /* Success */
+    .success-icon { font-size: 48px; margin-bottom: 20px; }
+    .success h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .success p { font-size: 15px; color: var(--muted); max-width: 380px; margin: 0 auto; }
+
+    /* Declined */
+    .declined-icon { font-size: 48px; margin-bottom: 20px; }
+    .declined h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .declined p { font-size: 15px; color: var(--muted); max-width: 380px; margin: 0 auto; }
+
+    /* Error */
+    .error h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-style: italic;
+      margin-bottom: 12px;
+      color: var(--danger);
+    }
+    .error p { font-size: 15px; color: var(--muted); max-width: 380px; margin: 0 auto; }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      padding: 18px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @media (max-width: 480px) { .page { padding: 36px 16px 60px; } }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <p class="masthead-eyebrow">You've been invited</p>
+    <div class="masthead-title">Your Gazette</div>
+    <hr class="masthead-rule"/>
+    <p class="masthead-tagline">A weekly paper from the people you love most.</p>
+  </header>
+
+  <main class="page">
+
+    <!-- Loading -->
+    <div class="state visible loading" id="state-loading">
+      <p>Loading your invitation…</p>
+    </div>
+
+    <!-- Invitation -->
+    <div class="state" id="state-invite">
+      <div class="invite-card">
+        <div class="invite-icon">🗞️</div>
+        <h1 id="invite-heading">You've been invited to write for Your Gazette.</h1>
+        <p id="invite-subtext">They'd love to hear from you each week.</p>
+      </div>
+
+      <div class="invite-what">
+        <p class="invite-what-label">What this means</p>
+        <ul>
+          <li>You'll receive an email each Friday with a link to write a short column</li>
+          <li>Your column appears in their personal Sunday newspaper</li>
+          <li>It takes just a few minutes — write as much or as little as you like</li>
+          <li>You can skip any week, no pressure</li>
+        </ul>
+      </div>
+
+      <button class="accept-btn" id="accept-btn">Accept invitation →</button>
+      <button class="decline-btn" id="decline-btn">No thanks, decline</button>
+    </div>
+
+    <!-- Success -->
+    <div class="state success" id="state-success">
+      <div class="success-icon">✅</div>
+      <h2>You're in.</h2>
+      <p>You'll receive your first column prompt this Friday evening. We're glad you're here.</p>
+    </div>
+
+    <!-- Declined -->
+    <div class="state declined" id="state-declined">
+      <div class="declined-icon">👋</div>
+      <h2>No worries.</h2>
+      <p>You won't receive any further emails from Your Gazette. If you change your mind, ask the person who invited you to send a new invitation.</p>
+    </div>
+
+    <!-- Error -->
+    <div class="state error" id="state-error">
+      <h2>This link isn't valid.</h2>
+      <p>It may have expired or been mistyped. Ask the person who invited you to send a new invitation.</p>
+    </div>
+
+  </main>
+
+  <footer>Your Gazette &nbsp;·&nbsp; A personal paper for people you love</footer>
+
+  <script>
+    const SUPABASE_URL  = 'https://ccmhhimbiwppsunoakwd.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_OuUvPtPrt3KkNMvLKV1rJg_jvk905gT';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    var columnistId  = null;
+    var subscriberId = null;
+
+    function showState(id) {
+      document.querySelectorAll('.state').forEach(function(s) { s.classList.remove('visible'); });
+      document.getElementById(id).classList.add('visible');
+    }
+
+    async function init() {
+      var params   = new URLSearchParams(window.location.search);
+      columnistId  = params.get('c');
+      subscriberId = params.get('s');
+
+      if (!columnistId || !subscriberId) {
+        showState('state-error');
+        return;
+      }
+
+      // Load subscriber name and columnist status
+      var subResult = await db
+        .from('subscribers')
+        .select('name')
+        .eq('id', subscriberId)
+        .maybeSingle();
+
+      var colResult = await db
+        .from('columnists')
+        .select('status')
+        .eq('id', columnistId)
+        .maybeSingle();
+
+      if (subResult.error || !subResult.data || colResult.error || !colResult.data) {
+        showState('state-error');
+        return;
+      }
+
+      var subscriberName = subResult.data.name;
+      var status         = colResult.data.status;
+
+      // If already accepted show success
+      if (status === 'accepted') {
+        showState('state-success');
+        return;
+      }
+
+      // Show invitation
+      document.getElementById('invite-heading').textContent =
+        subscriberName + ' has invited you to write for their Gazette.';
+      document.getElementById('invite-subtext').textContent =
+        subscriberName + ' would love to hear from you each week.';
+
+      showState('state-invite');
+    }
+
+    // Accept
+    document.getElementById('accept-btn').addEventListener('click', async function() {
+      var btn = document.getElementById('accept-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Accepting…';
+
+      var result = await db
+        .from('columnists')
+        .update({ status: 'accepted' })
+        .eq('id', columnistId);
+
+      if (result.error) {
+        btn.disabled    = false;
+        btn.textContent = 'Accept invitation →';
+        alert('Something went wrong — please try again.');
+        return;
+      }
+
+      showState('state-success');
+    });
+
+    // Decline
+    document.getElementById('decline-btn').addEventListener('click', async function() {
+      var btn = document.getElementById('decline-btn');
+      btn.disabled    = true;
+
+      await db
+        .from('columnists')
+        .delete()
+        .eq('id', columnistId);
+
+      showState('state-declined');
+    });
+
+    init();
+  </script>
+
+</body>
+</html>
