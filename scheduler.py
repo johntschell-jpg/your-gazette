@@ -47,9 +47,13 @@ db              = create_client(SUPABASE_URL, SUPABASE_KEY)
 #  HELPERS
 # ─────────────────────────────────────────────
 def get_issue_date():
-    """Returns the coming Sunday as a date object."""
-    today     = datetime.date.today()
-    days_ahead = (6 - today.weekday()) % 7 or 7
+    """Returns this Sunday's date."""
+    today      = datetime.date.today()
+    # If today is Sunday (weekday 6), use today
+    if today.weekday() == 6:
+        return today
+    # Otherwise return the coming Sunday
+    days_ahead = (6 - today.weekday()) % 7
     return today + datetime.timedelta(days=days_ahead)
 
 
