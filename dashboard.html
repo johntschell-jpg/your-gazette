@@ -156,6 +156,24 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .status-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      flex-shrink: 0;
+    }
+    .status-accepted {
+      background: #e8efe8;
+      color: #2b4a2f;
+      border: 1px solid #2b4a2f;
+    }
+    .status-pending {
+      background: #faf6e8;
+      color: #7a5c00;
+      border: 1px solid #c8a800;
+    }
     .columnist-since {
       font-family: 'DM Mono', monospace;
       font-size: 10px;
@@ -473,7 +491,7 @@
     async function loadColumnists() {
       var result = await db
         .from('columnists')
-        .select('*')
+        .select('id, email, added_at, status')
         .eq('subscriber_id', subscriber.id)
         .order('added_at', { ascending: true });
 
@@ -505,11 +523,14 @@
 
         var since = new Date(c.added_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+        var statusClass = c.status === 'accepted' ? 'status-accepted' : 'status-pending';
+        var statusText  = c.status === 'accepted' ? 'Accepted' : 'Pending';
         card.innerHTML =
           '<div class="columnist-info">' +
             '<div class="columnist-email">' + c.email + '</div>' +
             '<div class="columnist-since">Columnist since ' + since + '</div>' +
           '</div>' +
+          '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
           '<div class="confirm-remove" id="confirm-' + c.id + '">' +
             '<span>Remove?</span>' +
             '<button class="confirm-yes" data-id="' + c.id + '">Yes</button>' +
