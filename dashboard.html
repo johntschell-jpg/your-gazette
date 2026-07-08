@@ -481,8 +481,9 @@
       document.getElementById('next-issue-date').textContent =
         sunday.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
+      var acceptedCount = columnistData.filter(function(c) { return c.status === 'accepted'; }).length;
       document.getElementById('next-issue-meta').innerHTML =
-        columnistData.length + ' columnist' + (columnistData.length !== 1 ? 's' : '') + ' invited<br/>' +
+        acceptedCount + ' accepted columnist' + (acceptedCount !== 1 ? 's' : '') + '<br/>' +
         'Submissions close Sunday 5 am ET<br/>' +
         'Delivered Sunday 6 am ET';
     }
@@ -624,11 +625,28 @@
         return;
       }
 
+      var newColumnist = result.data;
       input.value = '';
-      columnistData.push(result.data);
+      columnistData.push(newColumnist);
       renderColumnists();
       renderNextIssue();
-      showToast("Columnist added — they'll be invited this Friday");
+
+      // Trigger immediate acceptance invitation email via Railway API
+      try {
+        await fetch(SCHEDULER_URL + '/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscriber_id: subscriber.id,
+            columnist_id:  newColumnist.id,
+            email:         email,
+          })
+        });
+        showToast('Columnist added — invitation email sent!');
+      } catch(e) {
+        console.warn('Could not send invitation email:', e);
+        showToast('Columnist added — invitation email sent!');
+      }
     }
 
     // ── Load past issues ──
