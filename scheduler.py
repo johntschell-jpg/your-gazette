@@ -209,7 +209,7 @@ Deadline: Sunday at 5 am ET.
   </p>
   <p class="deadline">&#9200; Deadline: Sunday at 5 am ET</p>
   <a class="cta-btn" href="{submit_url}">Write my column &rarr;</a>
-  <p class="footer">Your Gazette &nbsp;&middot;&nbsp; {subscriber['name']}'s Edition</p>
+  <p class="footer">Your Gazette</p>
 </div>
 </body>
 </html>"""
