@@ -204,7 +204,7 @@ Deadline: Sunday at 5 am ET.
     <p class="masthead-title">Your Gazette</p>
   </div>
   <p class="body-text">
-    <strong>{subscriber['name']}'s Gazette</strong> goes out this Sunday morning.
+    <strong>Your Gazette</strong> goes out this Sunday morning.
     Write your column — it only takes a few minutes.
   </p>
   <p class="deadline">&#9200; Deadline: Sunday at 5 am ET</p>
