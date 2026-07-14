@@ -341,7 +341,10 @@ def generate_gazette(data, output_path):
     # ── Story ──
     story = []
 
-    for i, col in enumerate(data["columns"]):
+    # Sort columns — submitted ones first, absent ones at the end
+    sorted_columns = sorted(data["columns"], key=lambda c: (0 if c["submitted"] else 1))
+
+    for i, col in enumerate(sorted_columns):
         block = []
 
         # Vertical rule between columns — drawn via thin spacer trick:
