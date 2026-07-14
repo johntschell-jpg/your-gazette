@@ -349,6 +349,30 @@
       padding: 20px 0 4px;
     }
 
+    .writing-for-list { display: flex; flex-direction: column; gap: 2px; }
+    .writing-for-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border: 1px solid var(--rule);
+      padding: 13px 16px;
+      gap: 12px;
+    }
+    .writing-for-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      font-style: italic;
+    }
+    .writing-for-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
     .loading {
       font-family: 'DM Mono', monospace;
       font-size: 11px;
@@ -426,6 +450,17 @@
       </div>
     </div>
 
+    <!-- Writing for -->
+    <div class="dashboard-section">
+      <div class="section-head">
+        <span class="section-label">Papers you write for</span>
+        <hr class="section-rule"/>
+      </div>
+      <div class="writing-for-list" id="writing-for-list">
+        <p class="loading">Loading...</p>
+      </div>
+    </div>
+
   </main>
 
   <footer>Your Gazette &nbsp;·&nbsp; A personal paper for people you love</footer>
@@ -469,6 +504,7 @@
       renderNextIssue();
       await loadColumnists();
       await loadPastIssues();
+      await loadWritingFor();
     }
 
     // ── Next issue banner ──
@@ -481,9 +517,8 @@
       document.getElementById('next-issue-date').textContent =
         sunday.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-      var acceptedCount = columnistData.filter(function(c) { return c.status === 'accepted'; }).length;
       document.getElementById('next-issue-meta').innerHTML =
-        acceptedCount + ' accepted columnist' + (acceptedCount !== 1 ? 's' : '') + '<br/>' +
+        columnistData.length + ' columnist' + (columnistData.length !== 1 ? 's' : '') + ' invited<br/>' +
         'Submissions close Sunday 5 am ET<br/>' +
         'Delivered Sunday 6 am ET';
     }
@@ -625,28 +660,11 @@
         return;
       }
 
-      var newColumnist = result.data;
       input.value = '';
-      columnistData.push(newColumnist);
+      columnistData.push(result.data);
       renderColumnists();
       renderNextIssue();
-
-      // Trigger immediate acceptance invitation email via Railway API
-      try {
-        await fetch(SCHEDULER_URL + '/invite', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subscriber_id: subscriber.id,
-            columnist_id:  newColumnist.id,
-            email:         email,
-          })
-        });
-        showToast('Columnist added — invitation email sent!');
-      } catch(e) {
-        console.warn('Could not send invitation email:', e);
-        showToast('Columnist added — invitation email sent!');
-      }
+      showToast("Columnist added — they'll be invited this Friday");
     }
 
     // ── Load past issues ──
@@ -681,6 +699,61 @@
 
         container.appendChild(row);
       });
+    }
+
+    // ── Papers you write for ──
+    async function loadWritingFor() {
+      var container = document.getElementById('writing-for-list');
+      container.innerHTML = '';
+
+      // Look up this subscriber's email in the columnists table
+      var result = await db
+        .from('columnists')
+        .select('status, subscriber_id')
+        .eq('email', subscriber.email);
+
+      if (result.error || !result.data || result.data.length === 0) {
+        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+        return;
+      }
+
+      // Get subscriber names for each paper they write for
+      var subscriberIds = result.data.map(function(c) { return c.subscriber_id; });
+      var subResult = await db
+        .from('subscribers')
+        .select('id, name')
+        .in('id', subscriberIds);
+
+      if (subResult.error || !subResult.data || subResult.data.length === 0) {
+        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+        return;
+      }
+
+      // Map subscriber IDs to status
+      var statusMap = {};
+      result.data.forEach(function(c) { statusMap[c.subscriber_id] = c.status; });
+
+      subResult.data.forEach(function(sub) {
+        // Don't show the subscriber's own paper
+        if (sub.id === subscriber.id) return;
+
+        var status = statusMap[sub.id];
+        var row = document.createElement('div');
+        row.className = 'writing-for-row';
+        var statusClass = status === 'accepted' ? 'status-accepted' : 'status-pending';
+        var statusText  = status === 'accepted' ? 'Accepted' : 'Pending';
+        row.innerHTML =
+          '<div class="columnist-info">' +
+            '<div class="writing-for-name">' + sub.name + ''s Gazette</div>' +
+            '<div class="writing-for-meta">' + (status === 'accepted' ? 'Writing every week' : 'Invitation pending') + '</div>' +
+          '</div>' +
+          '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
+        container.appendChild(row);
+      });
+
+      if (container.innerHTML === '') {
+        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+      }
     }
 
     // ── Utilities ──

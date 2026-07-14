@@ -75,10 +75,7 @@
       font-style: italic;
       margin-bottom: 8px;
     }
-    .intro p {
-      font-size: 14px;
-      color: var(--muted);
-    }
+    .intro p { font-size: 14px; color: var(--muted); }
     .form-group { margin-bottom: 20px; }
     label {
       display: block;
@@ -103,10 +100,7 @@
       border-radius: 0;
       -webkit-appearance: none;
     }
-    input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-lt);
-    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-lt); }
     input.error { border-color: var(--danger); }
     .error-msg {
       font-family: 'DM Mono', monospace;
@@ -156,6 +150,20 @@
       text-decoration: underline;
       cursor: pointer;
     }
+    .reset-section {
+      display: none;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid var(--rule);
+    }
+    .reset-success {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 12px;
+      text-align: center;
+      display: none;
+    }
     footer {
       border-top: 1px solid var(--rule);
       text-align: center;
@@ -178,7 +186,7 @@
     <p class="masthead-tagline">A weekly paper from the people you love most.</p>
   </header>
 
-  <main class="page"
+  <main class="page">
 
     <div class="intro">
       <h1>Sign in to your Gazette.</h1>
@@ -202,6 +210,21 @@
     <hr class="form-divider"/>
 
     <button class="submit-btn" id="submit-btn">Sign in →</button>
+
+    <p class="bottom-link">
+      <a id="forgot-link" href="#">Forgot your password?</a>
+    </p>
+
+    <!-- Reset password section -->
+    <div class="reset-section" id="reset-section">
+      <div class="form-group">
+        <label for="reset-email">Enter your email to receive a reset link</label>
+        <input type="email" id="reset-email" placeholder="you@example.com" autocomplete="email"/>
+        <span class="error-msg" id="reset-error"></span>
+      </div>
+      <button class="submit-btn" id="reset-btn">Send reset link →</button>
+      <p class="reset-success" id="reset-success">Check your inbox — a password reset link is on its way.</p>
+    </div>
 
     <p class="bottom-link">
       Don't have an account? <a href="signup.html">Start your Gazette</a>
@@ -240,6 +263,7 @@
       el.classList.add('visible');
     }
 
+    // ── Sign in ──
     document.getElementById('submit-btn').addEventListener('click', async function() {
       clearError('email-error');
       clearError('password-error');
@@ -267,6 +291,50 @@
       }
 
       window.location.href = 'dashboard.html';
+    });
+
+    // ── Forgot password ──
+    document.getElementById('forgot-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      var section = document.getElementById('reset-section');
+      section.style.display = section.style.display === 'none' || section.style.display === '' ? 'block' : 'none';
+      if (section.style.display === 'block') {
+        document.getElementById('reset-email').focus();
+      }
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', async function() {
+      var email     = document.getElementById('reset-email').value.trim();
+      var errorEl   = document.getElementById('reset-error');
+      var successEl = document.getElementById('reset-success');
+
+      errorEl.classList.remove('visible');
+      successEl.style.display = 'none';
+
+      if (!isValidEmail(email)) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        errorEl.classList.add('visible');
+        return;
+      }
+
+      var btn = document.getElementById('reset-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+
+      var result = await db.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+      });
+
+      btn.disabled    = false;
+      btn.textContent = 'Send reset link →';
+
+      if (result.error) {
+        errorEl.textContent = 'Something went wrong — please try again.';
+        errorEl.classList.add('visible');
+        return;
+      }
+
+      successEl.style.display = 'block';
     });
 
     // Allow Enter key to submit

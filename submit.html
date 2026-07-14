@@ -276,11 +276,18 @@
     }
 
     function getIssueDateString() {
-      var now       = new Date();
-      var sunday    = new Date(now);
-      var daysAhead = (7 - now.getDay()) % 7 || 7;
-      sunday.setDate(now.getDate() + daysAhead);
-      return sunday.toISOString().slice(0, 10);
+      var now = new Date();
+      var target;
+      if (now.getDay() === 0) {
+        target = now;
+      } else {
+        target = new Date(now);
+        var daysAhead = (7 - now.getDay()) % 7;
+        target.setDate(now.getDate() + daysAhead);
+      }
+      return target.getFullYear() + '-' +
+        String(target.getMonth() + 1).padStart(2, '0') + '-' +
+        String(target.getDate()).padStart(2, '0');
     }
 
     function formatIssueDate(str) {
