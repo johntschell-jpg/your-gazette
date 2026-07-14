@@ -545,15 +545,22 @@
         if (subResult.error) throw new Error(subResult.error.message);
         var subscriberId = subResult.data.id;
 
-        // 3. Insert columnists
+        // 3. Add subscriber as their own columnist (accepted immediately)
+        await db.from('columnists').insert({
+          subscriber_id: subscriberId,
+          email: email.toLowerCase(),
+          status: 'accepted'
+        });
+
+        // 4. Insert other columnists
         var columnistRows = columnists.map(function(e) {
-          return { subscriber_id: subscriberId, email: e };
+          return { subscriber_id: subscriberId, email: e.toLowerCase() };
         });
         var colResult = await db.from('columnists').insert(columnistRows).select();
         if (colResult.error) throw new Error(colResult.error.message);
 
-        // 4. Send acceptance invitations
-        var SCHEDULER_URL = 'your-gazette-production.up.railway.app';
+        // 5. Send acceptance invitations
+        var SCHEDULER_URL = 'https://your-gazette-production.up.railway.app';
         for (var i = 0; i < colResult.data.length; i++) {
           var c = colResult.data[i];
           try {
@@ -571,7 +578,7 @@
           }
         }
 
-        // 5. Show success
+        // 6. Show success
         document.getElementById('form-section').style.display = 'none';
         document.getElementById('success-title').textContent  = name + "'s Gazette";
         document.getElementById('success-screen').classList.add('visible');

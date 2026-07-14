@@ -690,12 +690,16 @@
           weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
         });
 
+        var downloadBtn = issue.pdf_url
+          ? '<a class="download-btn" href="' + issue.pdf_url + '" target="_blank" download>Download &darr;</a>'
+          : '<span class="download-btn" style="opacity:0.4;cursor:not-allowed;">Unavailable</span>';
+
         row.innerHTML =
           '<div class="issue-info">' +
             '<div class="issue-title">' + subscriber.name + "'s Gazette</div>" +
             '<div class="issue-meta">' + dateStr + ' &nbsp;·&nbsp; ' + issue.columnist_count + ' columnist' + (issue.columnist_count !== 1 ? 's' : '') + '</div>' +
           '</div>' +
-          '<a class="download-btn" href="' + issue.pdf_url + '" download>Download &darr;</a>';
+          downloadBtn;
 
         container.appendChild(row);
       });

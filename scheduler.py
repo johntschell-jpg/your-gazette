@@ -359,11 +359,26 @@ def send_sunday_gazette():
                 }],
             })
 
-            # 6. Record the issue in the database
+            # 6. Upload PDF to Supabase Storage
+            storage_path = f"{subscriber['id']}/{issue_date}.pdf"
+            pdf_url = None
+            try:
+                with open(pdf_path, "rb") as f:
+                    db.storage.from_("gazettes").upload(
+                        storage_path,
+                        f.read(),
+                        {"content-type": "application/pdf", "upsert": "true"}
+                    )
+                pdf_url = db.storage.from_("gazettes").get_public_url(storage_path)
+            except Exception as storage_err:
+                print(f"  ⚠ Could not upload PDF to storage: {storage_err}")
+
+            # 7. Record the issue in the database
             db.table("issues").insert({
                 "subscriber_id":   subscriber["id"],
                 "issue_date":      issue_date.isoformat(),
-                "pdf_path":        pdf_path,
+                "pdf_path":        storage_path,
+                "pdf_url":         pdf_url,
                 "columnist_count": submitted,
             }).execute()
 
@@ -376,100 +391,6 @@ def send_sunday_gazette():
             errors += 1
 
     print(f"  Sunday job complete — {sent} delivered, {errors} errors.\n")
-
-
-# ─────────────────────────────────────────────
-#  SATURDAY REMINDER
-# ─────────────────────────────────────────────
-def send_saturday_reminders():
-    print(f"\n[{datetime.datetime.now()}] Running Saturday reminder job...")
-
-    col_result = db.table("columnists").select("id, email, subscriber_id, status").execute()
-    if not col_result.data:
-        print("  No columnists found.")
-        return
-
-    # Deduplicate by email — one reminder per columnist
-    seen_emails = {}
-    for c in col_result.data:
-        if c.get("status") == "accepted" and c["email"] not in seen_emails:
-            seen_emails[c["email"]] = c
-
-    # Find who has already submitted this week
-    issue_date = get_issue_date()
-    all_emails = list(seen_emails.keys())
-    submitted_result = db.table("submissions")         .select("email")         .in_("email", all_emails)         .eq("issue_date", issue_date.isoformat())         .execute()
-    already_submitted = { s["email"] for s in (submitted_result.data or []) }
-
-    sent   = 0
-    errors = 0
-    skipped = 0
-
-    for email, columnist in seen_emails.items():
-        # Skip columnists who have already submitted
-        if email in already_submitted:
-            print(f"  — Skipping {email} (already submitted)")
-            skipped += 1
-            continue
-        submit_url = make_submission_link(columnist["subscriber_id"], columnist["id"])
-
-        text_body = f"""Hi,
-
-Just a reminder — your column for Your Gazette is due tomorrow, Sunday at 5 am ET.
-
-Write your column here:
-{submit_url}
-
-— Your Gazette
-"""
-
-        html_body = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<style>
-  body {{ background:#f7f4ee; font-family:Georgia,'Times New Roman',serif; color:#1a1714; margin:0; padding:0; }}
-  .wrap {{ max-width:520px; margin:40px auto; padding:0 24px 48px; }}
-  .masthead {{ text-align:center; border-bottom:3px double #1a1714; padding-bottom:14px; margin-bottom:32px; }}
-  .masthead-eyebrow {{ font-family:'Courier New',monospace; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#7a7063; margin-bottom:6px; }}
-  .masthead-title {{ font-size:30px; font-weight:bold; margin:0; }}
-  .body-text {{ font-size:16px; line-height:1.7; margin-bottom:28px; }}
-  .deadline {{ font-family:'Courier New',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#7a7063; margin-bottom:28px; }}
-  .cta-btn {{ display:block; background:#2b4a2f; color:#ffffff !important; text-decoration:none; text-align:center; font-family:'Courier New',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; padding:16px 24px; margin-bottom:32px; }}
-  .footer {{ font-family:'Courier New',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7a7063; text-align:center; border-top:1px solid #c8c0b0; padding-top:16px; }}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="masthead">
-    <p class="masthead-eyebrow">Reminder</p>
-    <p class="masthead-title">Your Gazette</p>
-  </div>
-  <p class="body-text">
-    Just a reminder — your column for Your Gazette is due tomorrow, Sunday at 5 am ET.
-  </p>
-  <p class="deadline">&#9200; Deadline: Sunday at 5 am ET</p>
-  <a class="cta-btn" href="{submit_url}">Write my column &rarr;</a>
-  <p class="footer">Your Gazette &nbsp;&middot;&nbsp; A personal paper for people you love</p>
-</div>
-</body>
-</html>"""
-
-        try:
-            resend.Emails.send({
-                "from":    FROM_ADDRESS,
-                "to":      email,
-                "subject": "Reminder — your Gazette column is due tomorrow",
-                "text":    text_body,
-                "html":    html_body,
-            })
-            print(f"  ✓ Reminder sent to {email}")
-            sent += 1
-        except Exception as e:
-            print(f"  ✗ Failed to remind {email}: {e}")
-            errors += 1
-
-    print(f"  Saturday reminder job complete — {sent} sent, {skipped} skipped (already submitted), {errors} errors.\n")
 
 
 # ─────────────────────────────────────────────
@@ -528,17 +449,9 @@ def run_scheduler():
 
     scheduler.add_job(
         send_friday_invitations,
-        CronTrigger(day_of_week="fri", hour=6, minute=0),
+        CronTrigger(day_of_week="fri", hour=18, minute=0),
         id="friday_invitations",
         name="Send Friday columnist invitations",
-        replace_existing=True,
-    )
-
-    scheduler.add_job(
-        send_saturday_reminders,
-        CronTrigger(day_of_week="sat", hour=6, minute=0),
-        id="saturday_reminders",
-        name="Send Saturday reminder emails",
         replace_existing=True,
     )
 
@@ -553,8 +466,7 @@ def run_scheduler():
     run_api_server()
     print("=" * 50)
     print("  Your Gazette Scheduler Running")
-    print("  Friday 6:00 am ET — columnist invitations")
-    print("  Saturday 6:00 am ET — reminder emails")
+    print("  Friday 6:00 pm ET — columnist invitations")
     print("  Sunday 6:00 am ET — gazette delivery")
     print("=" * 50)
 
@@ -573,14 +485,12 @@ def run_test():
     print("=" * 50)
     print()
 
-    choice = input("Run which job?\n  1 — Friday invitation emails\n  2 — Sunday gazette delivery\n  3 — All\n  4 — Saturday reminder emails\n\nChoice: ").strip()
+    choice = input("Run which job?\n  1 — Friday invitation emails\n  2 — Sunday gazette delivery\n  3 — Both\n\nChoice: ").strip()
 
-    if choice in ("1", "3", "4"):
+    if choice in ("1", "3"):
         send_friday_invitations()
     if choice in ("2", "3"):
         send_sunday_gazette()
-    if choice in ("3", "4"):
-        send_saturday_reminders()
 
 
 # ─────────────────────────────────────────────
