@@ -436,7 +436,7 @@
         <button class="add-row-btn" id="add-columnist-btn">Add</button>
       </div>
       <p class="add-error" id="add-error"></p>
-      <p class="add-hint">They'll receive their first invitation this Friday at 6 pm.</p>
+      <p class="add-hint">They'll receive an invitation to join right away. If they accept, they'll get their first prompt to write this Friday at 6 am ET.</p>
     </div>
 
     <!-- Past issues -->
@@ -714,10 +714,10 @@
       var result = await db
         .from('columnists')
         .select('status, subscriber_id')
-        .eq('email', subscriber.email);
+        .eq('email', subscriber.email).execute();
 
       if (result.error || !result.data || result.data.length === 0) {
-        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+        container.innerHTML = '<p class="empty-state">You\'re not writing for anyone\'s Gazette yet.</p>';
         return;
       }
 
@@ -726,10 +726,10 @@
       var subResult = await db
         .from('subscribers')
         .select('id, name')
-        .in('id', subscriberIds);
+        .in('id', subscriberIds).execute();
 
       if (subResult.error || !subResult.data || subResult.data.length === 0) {
-        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+        container.innerHTML = '<p class="empty-state">You\'re not writing for anyone\'s Gazette yet.</p>';
         return;
       }
 
@@ -748,7 +748,7 @@
         var statusText  = status === 'accepted' ? 'Accepted' : 'Pending';
         row.innerHTML =
           '<div class="columnist-info">' +
-            '<div class="writing-for-name">' + sub.name + ''s Gazette</div>' +
+            '<div class="writing-for-name">' + sub.name + '\'s Gazette</div>' +
             '<div class="writing-for-meta">' + (status === 'accepted' ? 'Writing every week' : 'Invitation pending') + '</div>' +
           '</div>' +
           '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
@@ -756,7 +756,7 @@
       });
 
       if (container.innerHTML === '') {
-        container.innerHTML = '<p class="empty-state">You're not writing for anyone's Gazette yet.</p>';
+        container.innerHTML = '<p class="empty-state">You\'re not writing for anyone\'s Gazette yet.</p>';
       }
     }
 
